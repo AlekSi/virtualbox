@@ -69,10 +69,12 @@ Please use the [issue tracker](https://github.com/mitchellh/virtualbox/issues).
 ## Contributing
 
 If you'd like to contribute to VirtualBox, the first step to developing is to
-clone this repo, get [wycat's bundler](http://github.com/wycats/bundler) if you
-don't have it already, and do the following:
+clone this repo and do the following:
 
-    gem bundle test
+    rake check_dependencies:development
+
+Then install missing dependencies and do:
+
     rake
 
 This will run the test suite, which should come back all green! Then you're good to go!

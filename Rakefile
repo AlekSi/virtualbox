@@ -8,6 +8,9 @@ begin
     gemspec.homepage = "http://github.com/mitchellh/virtualbox"
     gemspec.authors = ["Mitchell Hashimoto"]
     gemspec.executables = []
+
+    gemspec.add_development_dependency "contest", ">= 0.1.2"
+    gemspec.add_development_dependency "mocha"
   end
   Jeweler::GemcutterTasks.new
 rescue LoadError
