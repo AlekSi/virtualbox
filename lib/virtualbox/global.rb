@@ -3,10 +3,11 @@ module VirtualBox
   # which VirtualBox uses to keep track of all known virtual machines
   # and images.
   class Global < AbstractModel
-    # TODO: Perhaps make this detect the OS on initial load and set it
-    # to the typicaly "default" location, instead of defaulting to
-    # Mac OS X
-    @@vboxconfig = "~/Library/VirtualBox/VirtualBox.xml"
+    # TODO: Add Windows support.
+    ["~/Library/VirtualBox/VirtualBox.xml", "~/.VirtualBox/VirtualBox.xml"].each do |file|
+      file = File.expand_path(file)
+      @@vboxconfig = file if File.exist?(file)
+    end
 
     relationship :vms, VM, :lazy => true
     relationship :media, Media
