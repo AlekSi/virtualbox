@@ -209,12 +209,21 @@ module VirtualBox
     # Creates a human-readable format for this model. This method overrides the
     # default `#<class>` syntax since this doesn't work well for AbstractModels.
     # Instead, it abbreviates it, instead showing all the attributes and their
-    # values, and `...` for relationships.
+    # values, and `...` for relationships. For attributes which are themselves
+    # AbstractModels, it shows the class name to avoid extremely verbose inspections
+    # and infinite loops.
     def inspect
       values = []
 
       self.class.attributes.each do |name, options|
-        values.push("#{name.inspect}=#{read_attribute(name).inspect}")
+        value = read_attribute(name)
+        value = if value.is_a?(AbstractModel)
+          "#<#{value.class.name}>"
+        else
+          value.inspect
+        end
+
+        values.push("#{name.inspect}=#{value}")
       end
 
       self.class.relationships.each do |name, options|
