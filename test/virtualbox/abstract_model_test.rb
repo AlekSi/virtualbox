@@ -19,6 +19,55 @@ class AbstractModelTest < Test::Unit::TestCase
     relationship :bars, Bar, :dependent => :destroy
   end
 
+  context "reloading" do
+    context "with a single class" do
+      setup do
+        @model = FakeModel.new
+      end
+
+      teardown do
+        FakeModel.reloaded!
+      end
+
+      should "not want to be reloaded initially" do
+        assert !FakeModel.reload?
+      end
+
+      should "want to be reloaded once signaled by the class method" do
+        FakeModel.reload!
+        assert FakeModel.reload?
+      end
+
+      should "want to be reloaded once signaled by the instance method" do
+        @model.reload!
+        assert FakeModel.reload?
+      end
+
+      should "not want to be reloaded once reloaded! is called" do
+        @model.reload!
+        assert FakeModel.reload?
+        FakeModel.reloaded!
+        assert !FakeModel.reload?
+      end
+    end
+
+    context "with inheritance" do
+      class SubModel < FakeModel
+      end
+
+      setup do
+        @lazy = FakeModel.new
+        @sub = SubModel.new
+      end
+
+      should "not interfere with each others reload flags" do
+        @lazy.reload!
+        assert !SubModel.reload?
+        assert FakeModel.reload?
+      end
+    end
+  end
+
   context "lazy attributes and relationships" do
     class LazyModel < VirtualBox::AbstractModel
       attribute :foo, :lazy => true

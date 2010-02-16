@@ -96,6 +96,7 @@ module VirtualBox
       return false if empty_drive?
 
       Command.vboxmanage("closemedium", "dvd", uuid, "--delete")
+      Global.reload!
       true
     rescue Exceptions::CommandFailedException
       raise if raise_errors

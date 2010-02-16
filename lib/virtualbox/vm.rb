@@ -42,6 +42,7 @@ module VirtualBox
   #     attribute :uuid, :readonly => true
   #     attribute :name
   #     attribute :ostype
+  #     attribute :description, :readonly => true
   #     attribute :memory
   #     attribute :vram
   #     attribute :acpi
@@ -64,8 +65,12 @@ module VirtualBox
   #     attribute :monitorcount
   #     attribute :usb
   #     attribute :audio
+  #     attribute :audiocontroller
+  #     attribute :audiodriver
   #     attribute :vrdp
-  #     attribute :vrdpports
+  #     attribute :vrdpport
+  #     attribute :vrdpauthtype
+  #     attribute :vrdpauthtimeout
   #     attribute :state, :populate_key => :vmstate, :readonly => true
   #
   # ## Relationships
@@ -84,6 +89,7 @@ module VirtualBox
     attribute :uuid, :readonly => true
     attribute :name
     attribute :ostype
+    attribute :description, :readonly => true
     attribute :memory
     attribute :vram
     attribute :acpi
@@ -105,9 +111,13 @@ module VirtualBox
     attribute :clipboard
     attribute :monitorcount
     attribute :usb, :lazy => true
-    attribute :audio, :lazy => true
-    attribute :vrdp, :lazy => true
-    attribute :vrdpports, :lazy => true
+    attribute :audio
+    attribute :audiocontroller
+    attribute :audiodriver
+    attribute :vrdp
+    attribute :vrdpport
+    attribute :vrdpauthtype
+    attribute :vrdpauthtimeout
     attribute :state, :populate_key => :vmstate, :readonly => true, :lazy => true
     relationship :nics, Nic
     relationship :storage_controllers, StorageController, :dependent => :destroy
@@ -236,6 +246,7 @@ module VirtualBox
         :uuid     => ["Machine", :uuid],
         :name     => ["Machine", :name],
         :ostype   => ["Machine", :OSType],
+        :description => ["Machine Description"],
         :memory   => ["Hardware Memory", :RAMSize],
         :vram     => ["Hardware Display", :VRAMSize],
         :acpi     => ["Hardware BIOS ACPI", :enabled],
@@ -255,12 +266,21 @@ module VirtualBox
         :boot4    => ["Hardware Boot Order[position=\"4\"]", :device],
         :clipboard  => ["Hardware Clipboard", :mode],
         :monitorcount => ["Hardware Display", :monitorCount],
+        :audio            => ["Hardware AudioAdapter", :enabled],
+        :audiocontroller => ["Hardware AudioAdapter", :controller],
+        :audiodriver     => ["Hardware AudioAdapter", :driver],
+        :vrdp            => ["Hardware RemoteDisplay", :enabled],
+        :vrdpport        => ["Hardware RemoteDisplay", :port],
+        :vrdpauthtype    => ["Hardware RemoteDisplay", :authType],
+        :vrdpauthtimeout => ["Hardware RemoteDisplay", :authTimeout],
       }
 
       attribute_associations.each do |name, search_data|
         css, key = search_data
         node = doc.css(css)[0]
-        value = node.nil? ? nil : node[key]
+
+        # key is passed in for attributes, else you get the element inner text
+        value = (key ? node[key] : node.inner_text) if node
 
         # Special cases
         value = value[1..-2] if name == :uuid
@@ -287,9 +307,6 @@ module VirtualBox
       if !loaded_attribute?(:synthcpu)
         write_attribute(:synthcpu, info[:synthcpu])
         write_attribute(:usb, info[:usb])
-        write_attribute(:audio, info[:audio])
-        write_attribute(:vrdp, info[:vrdp])
-        write_attribute(:vrdpports, info[:vrdpports])
       end
     end
 
@@ -320,6 +337,9 @@ module VirtualBox
       end
 
       super()
+
+      # Force reload
+      Global.reload!
 
       true
     rescue Exceptions::CommandFailedException
@@ -493,7 +513,12 @@ module VirtualBox
       # unregistering a VM
       super
 
-      Command.vboxmanage("unregistervm", @original_name, "--delete")
+      if Command.vboxmanage("unregistervm", @original_name, "--delete")
+        Global.reload!
+        return true
+      else
+        return false
+      end
     end
 
     # Returns true if the virtual machine state is running
