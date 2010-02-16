@@ -3,10 +3,17 @@ module VirtualBox
   # which VirtualBox uses to keep track of all known virtual machines
   # and images.
   class Global < AbstractModel
-    # TODO: Add Windows support.
-    ["~/Library/VirtualBox/VirtualBox.xml", "~/.VirtualBox/VirtualBox.xml"].each do |file|
-      file = File.expand_path(file)
-      @@vboxconfig = file if File.exist?(file)
+    # The path to the global VirtualBox XML configuration file. This is
+    # entirely system dependent and can be set with {vboxconfig=}. The default
+    # is guessed based on the platform.
+    #
+    # TODO: Windows
+    @@vboxconfig = if RUBY_PLATFORM.downcase.include?("darwin")
+      "~/Library/VirtualBox/VirtualBox.xml"
+    elsif RUBY_PLATFORM.downcase.include?("linux")
+      "~/.VirtualBox/VirtualBox.xml"
+    else
+      "Unknown"
     end
 
     relationship :vms, VM, :lazy => true
@@ -33,10 +40,13 @@ module VirtualBox
         @@vboxconfig = value
       end
 
-      # Returns the XML document of the configuration.
+      # Returns the XML document of the configuration. This will raise an
+      # {Exceptions::ConfigurationException} if the vboxconfig file doesn't
+      # exist.
       #
       # @return [Nokogiri::XML::Document]
       def config
+        raise Exceptions::ConfigurationException.new("The path to the global VirtualBox config must be set. See Global.vboxconfig=") unless File.exist?(@@vboxconfig)
         Command.parse_xml(File.expand_path(@@vboxconfig))
       end
 
